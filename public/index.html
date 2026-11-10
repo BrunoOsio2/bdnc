@@ -113,12 +113,20 @@
         .then(function (r) { return r.json(); })
         .then(function (data) {
           if (data.NumMens !== 0) { status.textContent = 'Erro: ' + data.Mensagem; return; }
-          var itens = data.dados || [];
-          status.textContent = itens.length + ' resultado(s) para "' + texto + '"';
+          var itens = (data.dados || []).filter(function (r) {
+            return Math.round(Number(r.score) * 100) >= 25; // esconde abaixo de 25%
+          });
+          status.textContent = itens.length + ' resultado(s) relevante(s) para "' + texto + '"';
           corpo.innerHTML = itens.map(linha).join('');
           tabela.style.display = itens.length ? 'table' : 'none';
         })
         .catch(function (e) { status.textContent = 'Falha na requisicao: ' + e.message; });
+    }
+
+    function corRelevancia(pct) {
+      if (pct >= 75) return '#1a7f1a';   // verde  (75-100)
+      if (pct >= 50) return '#c9a400';   // amarelo (50-74)
+      return '#e07b00';                  // laranja (25-49)
     }
 
     function linha(p) {
@@ -127,13 +135,15 @@
       var botao = desc.length > 90
         ? '<button class="toggle" onclick="toggleDesc(this)">ver mais</button>'
         : '';
+      var pct = Math.round(Number(p.score) * 100);
+      var cor = corRelevancia(pct);
       return '<tr>' +
         '<td class="num">' + p.id_produto + '</td>' +
         '<td>' + p.nome + '</td>' +
         '<td class="desccol"><div class="desc">' + desc + '</div>' + botao + '</td>' +
         '<td>' + p.classe + '</td>' +
         '<td class="num">' + preco + '</td>' +
-        '<td class="num">' + Math.round(Number(p.score) * 100) + '%</td>' +
+        '<td class="num"><strong style="color:' + cor + '">' + pct + '%</strong></td>' +
         '<td class="num">' + Math.round(Number(p.semantica) * 100) + '%</td>' +
         '<td class="num">' + Math.round(Number(p.lexico) * 100) + '%</td>' +
         '</tr>';
