@@ -1,0 +1,30 @@
+# PostgreSQL + pgvector para o Projeto BDNC.
+# Sobe um banco pronto (com a extensao pgvector embutida) em localhost:5432.
+#
+#   docker compose up -d      # inicia (em segundo plano)
+#   docker compose stop       # para (mantem os dados)
+#   docker compose down       # remove o container (mantem o volume)
+#   docker compose down -v    # remove tudo, inclusive os dados
+#
+# No .env do projeto use:  DB_USER=postgres  DB_PASSWORD=postgres  DB_NAME=bdnc
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: bdnc-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bdnc
+    ports:
+      - "5432:5432"
+    volumes:
+      - bdnc_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  bdnc_pgdata:

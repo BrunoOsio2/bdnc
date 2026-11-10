@@ -1,5 +1,6 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
+import path from 'path';
 import { pool } from './config/database';
 import produtoRoutes from './modules/produto/produto.routes';
 
@@ -19,20 +20,23 @@ export class App {
     this.app.use(cors());
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
+    // Frontend estatico (public/index.html -> "/")
+    this.app.use(express.static(path.join(__dirname, '..', 'public')));
   }
 
   private routes(): void {
-    // Raiz
-    this.app.get('/', (_req: Request, res: Response) => {
+    // Info da API (JSON)
+    this.app.get('/api', (_req: Request, res: Response) => {
       res.json({
         message: 'Projeto BDNC - Problema A (comercio eletronico)',
         version: '1.0.0',
         endpoints: [
           'GET  /health',
           'GET  /api/v1/produto',
+          'GET  /api/v1/produto/buscar?q=...&limite=10',
           'GET  /api/v1/produto/:id',
           'POST /api/v1/produto',
-          'GET  /api/v1/produto/ProdutoController?operacao=getProdutos',
+          'POST /api/v1/produto/vetorizar-todos',
         ],
       });
     });

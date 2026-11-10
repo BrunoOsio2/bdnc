@@ -3,6 +3,7 @@
 -- PostgreSQL. Fonte unica: todos rodam este arquivo igual.
 -- ============================================================
 
+DROP TABLE IF EXISTS produto_embedding CASCADE;
 DROP TABLE IF EXISTS recomendacao CASCADE;
 DROP TABLE IF EXISTS evento_navegacao CASCADE;
 DROP TABLE IF EXISTS item_pedido CASCADE;

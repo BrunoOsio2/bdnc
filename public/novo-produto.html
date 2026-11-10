@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adicionar produto</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #ffffff;
+      color: #000000;
+      font-size: 18px;
+      margin: 40px;
+    }
+    h1 { font-size: 28px; margin: 0 0 6px; }
+    p { margin: 0 0 20px; }
+    .nav { margin-bottom: 24px; }
+    .nav a { margin-right: 16px; }
+    label { display: block; margin: 16px 0 6px; font-weight: bold; }
+    input, textarea, select {
+      width: 560px;
+      max-width: 90%;
+      padding: 10px;
+      font-size: 18px;
+      border: 1px solid #000;
+      box-sizing: border-box;
+    }
+    textarea { height: 90px; resize: vertical; }
+    .dica { font-weight: normal; color: #555; font-size: 14px; }
+    button {
+      margin-top: 22px;
+      padding: 12px 22px;
+      font-size: 18px;
+      border: 1px solid #000;
+      background: #f2f2f2;
+      cursor: pointer;
+    }
+    #msg { margin-top: 20px; padding: 12px; display: none; }
+    #msg.ok { border: 1px solid #1a7f1a; background: #eef8ee; }
+    #msg.erro { border: 1px solid #a11; background: #fbeeee; }
+  </style>
+</head>
+<body>
+  <h1>Adicionar produto</h1>
+  <p>Cadastra um produto no banco relacional. Ao salvar, ele é vetorizado automaticamente.</p>
+
+  <div class="nav">
+    <a href="/">Busca por similaridade</a>
+    <a href="/produtos.html">Lista de produtos</a>
+    <a href="/novo-produto.html">Adicionar produto</a>
+  </div>
+
+  <form id="form">
+    <label for="nome">Nome</label>
+    <input type="text" id="nome" required />
+
+    <label for="descricao">Descrição
+      <span class="dica">(quanto mais detalhada, melhor a busca por similaridade)</span>
+    </label>
+    <textarea id="descricao" placeholder="ex.: Mochila de trilha impermeavel com 40 litros, leve, para camping e viagens ao ar livre"></textarea>
+
+    <label for="classe">Classe</label>
+    <select id="classe" required></select>
+
+    <label for="preco">Preço (R$)</label>
+    <input type="number" id="preco" step="0.01" min="0" required />
+
+    <button type="submit">Salvar produto</button>
+  </form>
+
+  <div id="msg"></div>
+
+  <script>
+    var form = document.getElementById('form');
+    var selClasse = document.getElementById('classe');
+    var msg = document.getElementById('msg');
+
+    // carrega as classes no dropdown
+    fetch('/api/v1/produto/classes')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        (data.dados || []).forEach(function (c) {
+          var opt = document.createElement('option');
+          opt.value = c.id_classe;
+          opt.textContent = c.codigo + ' — ' + (c.descricao || '');
+          selClasse.appendChild(opt);
+        });
+      })
+      .catch(function () { mostrar('erro', 'Falha ao carregar as classes.'); });
+
+    function mostrar(tipo, texto) {
+      msg.className = tipo;
+      msg.textContent = texto;
+      msg.style.display = 'block';
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var body = {
+        nome: document.getElementById('nome').value.trim(),
+        descricao: document.getElementById('descricao').value.trim(),
+        id_classe: selClasse.value,
+        preco: document.getElementById('preco').value
+      };
+      mostrar('', 'Salvando...');
+      fetch('/api/v1/produto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.NumMens !== 0) { mostrar('erro', 'Erro: ' + data.Mensagem); return; }
+          var d = data.dados || {};
+          mostrar('ok', 'Produto #' + d.id_produto + ' criado e vetorizado. ' +
+            'Veja na lista de produtos ou teste na busca.');
+          form.reset();
+        })
+        .catch(function (err) { mostrar('erro', 'Falha na requisicao: ' + err.message); });
+    });
+  </script>
+</body>
+</html>

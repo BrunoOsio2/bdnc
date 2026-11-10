@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Busca por similaridade</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #ffffff;
+      color: #000000;
+      font-size: 18px;
+      margin: 40px;
+    }
+    h1 { font-size: 28px; margin: 0 0 6px; }
+    p { margin: 0 0 24px; }
+    #form { margin-bottom: 20px; }
+    input[type=search] {
+      width: 520px;
+      max-width: 70%;
+      padding: 12px;
+      font-size: 18px;
+      border: 1px solid #000;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 18px;
+      border: 1px solid #000;
+      background: #f2f2f2;
+      cursor: pointer;
+    }
+    .exemplos { margin-bottom: 24px; }
+    .exemplos a { margin-right: 16px; }
+    .nav a { margin-right: 16px; }
+    #status { margin: 16px 0; }
+    table { border-collapse: collapse; width: 100%; font-size: 18px; }
+    th, td { border: 1px solid #999; padding: 10px 12px; text-align: left; vertical-align: top; }
+    th { background: #f2f2f2; }
+    td.num { text-align: right; white-space: nowrap; }
+    td.desccol { max-width: 340px; }
+    .desc {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .desc.expandido { -webkit-line-clamp: unset; overflow: visible; }
+    .toggle {
+      margin-top: 6px; font-size: 14px; padding: 4px 8px;
+      border: 1px solid #000; background: #f2f2f2; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Busca por similaridade</h1>
+  <p>Digite uma frase. Ela é vetorizada e comparada com os produtos (distância de cosseno no pgvector).</p>
+
+  <div class="nav" style="margin-bottom:20px">
+    <a href="/">Busca por similaridade</a>
+    <a href="/produtos.html">Lista de produtos</a>
+    <a href="/novo-produto.html">Adicionar produto</a>
+  </div>
+
+  <form id="form">
+    <input type="search" id="q" placeholder="ex.: notebook potente" autocomplete="off" />
+    <button type="submit">Buscar</button>
+  </form>
+
+  <div class="exemplos">
+    Exemplos:
+    <a href="#" data-q="notebook">notebook</a>
+    <a href="#" data-q="barraca para acampar">barraca para acampar</a>
+    <a href="#" data-q="camiseta algodao">camiseta algodao</a>
+    <a href="#" data-q="suco de uva">suco de uva</a>
+  </div>
+
+  <div id="status"></div>
+
+  <table id="tabela" style="display:none">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Nome</th>
+        <th>Descrição</th>
+        <th>Classe</th>
+        <th>Preço</th>
+        <th>Relevância</th>
+        <th>Semântica</th>
+        <th>Léxico</th>
+      </tr>
+    </thead>
+    <tbody id="corpo"></tbody>
+  </table>
+
+  <p style="margin-top:28px; color:#555; font-size:15px;">
+    Observação: o embedding atual é um placeholder (sem IA), então a ordenação se baseia
+    em palavras em comum com nome e descrição.
+  </p>
+
+  <script>
+    var form = document.getElementById('form');
+    var q = document.getElementById('q');
+    var status = document.getElementById('status');
+    var tabela = document.getElementById('tabela');
+    var corpo = document.getElementById('corpo');
+
+    function buscar(texto) {
+      if (!texto.trim()) return;
+      status.textContent = 'Buscando...';
+      tabela.style.display = 'none';
+      corpo.innerHTML = '';
+      fetch('/api/v1/produto/buscar?q=' + encodeURIComponent(texto) + '&limite=10')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.NumMens !== 0) { status.textContent = 'Erro: ' + data.Mensagem; return; }
+          var itens = data.dados || [];
+          status.textContent = itens.length + ' resultado(s) para "' + texto + '"';
+          corpo.innerHTML = itens.map(linha).join('');
+          tabela.style.display = itens.length ? 'table' : 'none';
+        })
+        .catch(function (e) { status.textContent = 'Falha na requisicao: ' + e.message; });
+    }
+
+    function linha(p) {
+      var preco = Number(p.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      var desc = p.descricao || '';
+      var botao = desc.length > 90
+        ? '<button class="toggle" onclick="toggleDesc(this)">ver mais</button>'
+        : '';
+      return '<tr>' +
+        '<td class="num">' + p.id_produto + '</td>' +
+        '<td>' + p.nome + '</td>' +
+        '<td class="desccol"><div class="desc">' + desc + '</div>' + botao + '</td>' +
+        '<td>' + p.classe + '</td>' +
+        '<td class="num">' + preco + '</td>' +
+        '<td class="num">' + Math.round(Number(p.score) * 100) + '%</td>' +
+        '<td class="num">' + Math.round(Number(p.semantica) * 100) + '%</td>' +
+        '<td class="num">' + Math.round(Number(p.lexico) * 100) + '%</td>' +
+        '</tr>';
+    }
+
+    function toggleDesc(btn) {
+      var div = btn.previousElementSibling;
+      var aberto = div.classList.toggle('expandido');
+      btn.textContent = aberto ? 'ver menos' : 'ver mais';
+    }
+
+    form.addEventListener('submit', function (e) { e.preventDefault(); buscar(q.value); });
+    var links = document.querySelectorAll('.exemplos a');
+    for (var i = 0; i < links.length; i++) {
+      links[i].addEventListener('click', function (e) {
+        e.preventDefault();
+        q.value = this.getAttribute('data-q');
+        buscar(q.value);
+      });
+    }
+  </script>
+</body>
+</html>

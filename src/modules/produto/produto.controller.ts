@@ -18,6 +18,10 @@ export class ProdutoController {
           await produtoService.getProdutos();
           break;
 
+        case 'getClasses':
+          await produtoService.getClasses();
+          break;
+
         case 'getProduto': {
           const id_produto = parseInt(req.query.id_produto as string);
           if (!id_produto) throw new Error('id_produto nao informado');
@@ -36,6 +40,26 @@ export class ProdutoController {
           if (!dados.id_classe) throw new Error('campo id_classe nao fornecido');
           if (isNaN(dados.preco)) throw new Error('campo preco nao fornecido');
           await produtoService.createProduto(dados);
+          break;
+        }
+
+        case 'vetorizarProduto': {
+          const id_produto = parseInt((req.query.id_produto as string) || req.body.id_produto);
+          if (!id_produto) throw new Error('id_produto nao informado');
+          await produtoService.vetorizarProduto(id_produto);
+          banco.setDados(1, { id_produto, Mensagem: 'Produto vetorizado' });
+          break;
+        }
+
+        case 'vetorizarTodos':
+          await produtoService.vetorizarTodos();
+          break;
+
+        case 'buscarSimilares': {
+          const texto = (req.query.q as string) || '';
+          if (!texto.trim()) throw new Error('parametro de busca "q" nao informado');
+          const limite = Math.min(parseInt(req.query.limite as string) || 10, 50);
+          await produtoService.buscarSimilares(texto, limite);
           break;
         }
 

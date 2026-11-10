@@ -10,11 +10,20 @@
     "db:create": "createdb bdnc 2>/dev/null || true",
     "db:schema": "psql -d bdnc -f src/database/schema.sql",
     "db:seed": "psql -d bdnc -f src/database/seed.sql",
-    "db:setup": "npm run db:create && npm run db:schema && npm run db:seed"
+    "db:vector": "psql -d bdnc -f src/database/pgvector.sql",
+    "db:setup": "npm run db:create && npm run db:schema && npm run db:seed",
+    "db:setup:vector": "node scripts/setup-db.js"
   },
-  "keywords": ["bdnc", "ecommerce", "express", "typescript", "postgresql"],
+  "keywords": [
+    "bdnc",
+    "ecommerce",
+    "express",
+    "typescript",
+    "postgresql"
+  ],
   "license": "ISC",
   "dependencies": {
+    "@huggingface/transformers": "^4.3.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
